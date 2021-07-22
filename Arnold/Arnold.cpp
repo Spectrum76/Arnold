@@ -9,29 +9,54 @@
 #include <iostream>
 
 #include <glm/glm.hpp>
-#include <spdlog/spdlog.h>
 #include <stb_image_write.h>
+
+#include "Ray.h"
+
+vec3 ray_color(const Ray& r)
+{
+	vec3 unit_direction = normalize(r.direction());
+	auto t = 0.5f * (unit_direction.y + 1.0f);
+	return (1.0f - t) * vec3(1.0, 1.0, 1.0) + t * vec3(0.5, 0.7, 1.0);
+}
 
 int main()
 {
+	// Image
+	const auto aspect_ratio = 16.0 / 9.0;
 	const int image_width = 1280;
-	const int image_height = 720;
+	const int image_height = static_cast<int>(image_width / aspect_ratio);
+
+	// Camera
+	auto viewport_height = 2.0;
+	auto viewport_width = aspect_ratio * viewport_height;
+	auto focal_length = 1.0;
+
+	auto origin = vec3(0, 0, 0);
+	auto horizontal = vec3(viewport_width, 0, 0);
+	auto vertical = vec3(0, viewport_height, 0);
+	auto lower_left_corner = origin - horizontal / 2.0f - vertical / 2.0f - vec3(0, 0, focal_length);
+
+	auto start = std::chrono::high_resolution_clock::now();
 
 	std::vector<uint8_t> image_data;
 
 	for (int j = image_height - 1; j >= 0; --j)
 	{
-		std::cerr << "\rScanlines remaining: " << j << ' ' << std::flush;
+		std::cout << "\rScanlines remaining: " << j << ' ' << std::flush;
 
 		for (int i = 0; i < image_width; ++i)
 		{
-			auto r = float(i) / (image_width - 1);
-			auto g = float(j) / (image_height - 1);
-			auto b = 0.25f;
+			auto u = float(i) / (image_width - 1);
+			auto v = float(j) / (image_height - 1);
 
-			int ir = static_cast<int>(255.999 * r);
-			int ig = static_cast<int>(255.999 * g);
-			int ib = static_cast<int>(255.999 * b);
+			Ray r(origin, lower_left_corner + u * horizontal + v * vertical - origin);
+			vec3 pixel_color = ray_color(r);
+
+			// write_color function.
+			int ir = static_cast<int>(255.999 * pixel_color.x);
+			int ig = static_cast<int>(255.999 * pixel_color.y);
+			int ib = static_cast<int>(255.999 * pixel_color.z);
 
 			image_data.push_back(ir);
 			image_data.push_back(ig);
@@ -39,6 +64,10 @@ int main()
 		}
 	}
 
+	auto stop = std::chrono::high_resolution_clock::now();
+	auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+	std::cout << "\nTook " << duration.count() << " milliseconds" << std::endl;
+
 	int result = stbi_write_png("Arnold.png", image_width, image_height, 3, image_data.data(), image_width * 3);
-	std::cerr << "\nDone.\n";
+	std::cout << "\nDone.\n";
 }
