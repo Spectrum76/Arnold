@@ -13,30 +13,45 @@
 
 #include "Ray.h"
 
-bool hit_sphere(const vec3& center, float radius, const Ray& r)
+float hit_sphere(const vec3& center, float radius, const Ray& r)
 {
 	vec3 oc = r.origin() - center;
 	auto a = dot(r.direction(), r.direction());
 	auto b = 2.0f * dot(oc, r.direction());
 	auto c = dot(oc, oc) - radius * radius;
 	auto discriminant = b * b - 4 * a * c;
-	return (discriminant > 0);
+	
+	if (discriminant < 0)
+	{
+		return -1.0f;
+	}
+	else
+	{
+		return (-b - sqrt(discriminant)) / (2.0f * a);
+	}
 }
 
 vec3 ray_color(const Ray& r)
 {
-	if (hit_sphere(vec3(0, 0, -1), 0.5, r))
-		return vec3(1, 0, 0);
+	auto t = hit_sphere(vec3(0, 0, -1), 0.5f, r);
+	
+	if (t > 0.0f)
+	{
+		vec3 N = normalize(r.at(t) - vec3(0, 0, -1));
+		return 0.5f * (N + 1.0f);
+	}
+	
 	vec3 unit_direction = normalize(r.direction());
-	auto t = 0.5f * (unit_direction.y + 1.0f);
-	return (1.0f - t) * vec3(1.0, 1.0, 1.0) + t * vec3(0.5, 0.7, 1.0);
+	t = 0.5f * (unit_direction.y + 1.0f);
+	
+	return (1.0f - t) * vec3(1.0f, 1.0f, 1.0f) + t * vec3(0.5f, 0.7f, 1.0f);
 }
 
 int main()
 {
 	// Image
 	const auto aspect_ratio = 16.0 / 9.0;
-	const int image_width = 1280;
+	const int image_width = 1920;
 	const int image_height = static_cast<int>(image_width / aspect_ratio);
 
 	// Camera
