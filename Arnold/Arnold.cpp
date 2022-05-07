@@ -9,6 +9,7 @@
 #include <iostream>
 
 #include <glm/glm.hpp>
+#include <glm/gtx/norm.hpp>
 #include <stb_image_write.h>
 
 #include "Ray.h"
@@ -16,34 +17,34 @@
 float hit_sphere(const vec3& center, float radius, const Ray& r)
 {
 	vec3 oc = r.origin() - center;
-	auto a = dot(r.direction(), r.direction());
-	auto b = 2.0f * dot(oc, r.direction());
-	auto c = dot(oc, oc) - radius * radius;
-	auto discriminant = b * b - 4 * a * c;
-	
+	auto a = length2(r.direction());
+	auto half_b = dot(oc, r.direction());
+	auto c = length2(oc) - radius * radius;
+	auto discriminant = half_b * half_b - a * c;
+
 	if (discriminant < 0)
 	{
 		return -1.0f;
 	}
 	else
 	{
-		return (-b - sqrt(discriminant)) / (2.0f * a);
+		return (-half_b - sqrt(discriminant)) / a;
 	}
 }
 
 vec3 ray_color(const Ray& r)
 {
 	auto t = hit_sphere(vec3(0, 0, -1), 0.5f, r);
-	
+
 	if (t > 0.0f)
 	{
 		vec3 N = normalize(r.at(t) - vec3(0, 0, -1));
 		return 0.5f * (N + 1.0f);
 	}
-	
+
 	vec3 unit_direction = normalize(r.direction());
 	t = 0.5f * (unit_direction.y + 1.0f);
-	
+
 	return (1.0f - t) * vec3(1.0f, 1.0f, 1.0f) + t * vec3(0.5f, 0.7f, 1.0f);
 }
 
