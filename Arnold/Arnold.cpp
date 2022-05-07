@@ -13,37 +13,20 @@
 #include <stb_image_write.h>
 
 #include "Ray.h"
+#include "HittableList.h"
+#include "Sphere.h"
+#include "Utilities.h"
 
-float hit_sphere(const vec3& center, float radius, const Ray& r)
+vec3 ray_color(const Ray& r, const Hittable& world)
 {
-	vec3 oc = r.origin() - center;
-	auto a = length2(r.direction());
-	auto half_b = dot(oc, r.direction());
-	auto c = length2(oc) - radius * radius;
-	auto discriminant = half_b * half_b - a * c;
-
-	if (discriminant < 0)
+	HitRecord rec;
+	if (world.Hit(r, 0, infinity, rec))
 	{
-		return -1.0f;
-	}
-	else
-	{
-		return (-half_b - sqrt(discriminant)) / a;
-	}
-}
-
-vec3 ray_color(const Ray& r)
-{
-	auto t = hit_sphere(vec3(0, 0, -1), 0.5f, r);
-
-	if (t > 0.0f)
-	{
-		vec3 N = normalize(r.at(t) - vec3(0, 0, -1));
-		return 0.5f * (N + 1.0f);
+		return 0.5f * (rec.normal + vec3(1, 1, 1));
 	}
 
 	vec3 unit_direction = normalize(r.direction());
-	t = 0.5f * (unit_direction.y + 1.0f);
+	auto t = 0.5f * (unit_direction.y + 1.0f);
 
 	return (1.0f - t) * vec3(1.0f, 1.0f, 1.0f) + t * vec3(0.5f, 0.7f, 1.0f);
 }
@@ -54,6 +37,11 @@ int main()
 	const auto aspect_ratio = 16.0 / 9.0;
 	const int image_width = 1920;
 	const int image_height = static_cast<int>(image_width / aspect_ratio);
+
+	// World
+	HittableList world;
+	world.Add(make_shared<Sphere>(vec3(0.0f, 0.0f, -1.0f), 0.5f));
+	world.Add(make_shared<Sphere>(vec3(0.0f, -100.5f, -1.0f), 100.0f));
 
 	// Camera
 	auto viewport_height = 2.0;
@@ -79,7 +67,7 @@ int main()
 			auto v = float(j) / (image_height - 1);
 
 			Ray r(origin, lower_left_corner + u * horizontal + v * vertical - origin);
-			vec3 pixel_color = ray_color(r);
+			vec3 pixel_color = ray_color(r, world);
 
 			// write_color function.
 			int ir = static_cast<int>(255.999 * pixel_color.x);
